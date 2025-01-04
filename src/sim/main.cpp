@@ -1,12 +1,11 @@
-#include <immintrin.h>
 #include <stdio.h>
 #include <algorithm>
 #include <math.h>
-#include <stdio.h>
 #include <iostream>
 #include <iomanip>
 #include "solver.h"
 #include <fstream>
+#include <chrono>
 
 using namespace std;
 
@@ -19,7 +18,7 @@ void printFloatArr(float* arr, int size) {
 
 int main() {
     // defining constants for problem
-    const int nx = 128;                 // no. cells along x
+    const int nx = 512;                 // no. cells along x
     const int nt = 1000;                // no. iterations
     const float x0 = 0;                 // position of leftmost boundary
     const float x1 = 1;                 // position of rightmost boundary
@@ -31,7 +30,8 @@ int main() {
     const float dg = 0.1 * (x1 - x0);   // standard deviation of density array gaussian
 
     // initialise arrays
-    float x[nx], rho[nx], rhou[nx], e[nx], time[nt+1], pdata[nt][nx];
+    float x[nx], rho[nx], rhou[nx], e[nx], time[nt+1];
+    auto pdata = new float[nt][nx];
 
     // fill x array with nx evenly-spaced positions between x0 and x1
     generate(x, x+nx, [i=0, dx, x0]() mutable {return x0 + dx * i++;});
@@ -45,35 +45,33 @@ int main() {
     // fill internal energy array with constant 1
     fill(e, e+nx, 1);
 
-    Solver<128> s = Solver<128>(x, rho, rhou, e, gamma);
+    Solver<nx> s = Solver<nx>(x, rho, rhou, e, gamma);
+    auto start = chrono::high_resolution_clock::now();
     for (int i = 1; i < nt+1; i++) {
         s.hydroIso(dt);
         s.getPressure(pdata[i-1]);
     }
+    auto end = chrono::high_resolution_clock::now();
 
-    printFloatArr(pdata[0], nx);
+    double timeTaken = chrono::duration_cast<chrono::nanoseconds>(end - start).count();
+    timeTaken *= 1e-9;
 
-    cout << "Hello, world!" << endl;
+    double timePerIter = timeTaken / (double) nt;
+
+    cout << "Solved " << nt << "iterations in " << timeTaken << setprecision(9) << " s" << endl;
+
+    cout << timePerIter * 1e6 << " us / iteration" << endl;
+    cout << 1 / timePerIter << " Hz" << endl;
+
+    // printFloatArr(pdata[0], nx);
 
     ofstream myfile;
-    myfile.open("pdata.bin", ios::binary);
-    myfile.write((char*) &pdata, sizeof(pdata));
+    myfile.open("./output/pdata.bin", ios::binary);
+    for (int i = 0; i < nt; i++) {
+        myfile.write((char*) pdata[i], sizeof(float)*nx);
+    }
+    
     myfile.close();
 
     return 0;
-}
-
-
-void avxDemo() {
-    /* Initialize the two argument vectors */
-    __m256 evens = _mm256_set_ps(2.0, 4.0, 6.0, 8.0, 10.0, 12.0, 14.0, 16.0);
-    __m256 odds = _mm256_set_ps(1.0, 3.0, 5.0, 7.0, 9.0, 11.0, 13.0, 15.0);
-
-    /* Compute the difference between the two vectors */
-    __m256 result = _mm256_sub_ps(evens, odds);
-
-    /* Display the elements of the result vector */
-    float *f = (float *)&result;
-    printf("%f %f %f %f %f %f %f %f\n",
-          f[0], f[1], f[2], f[3], f[4], f[5], f[6], f[7]);
 }
