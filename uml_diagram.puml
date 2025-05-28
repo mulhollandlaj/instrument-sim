@@ -1,0 +1,106 @@
+@startuml
+' Declare the enums
+enum BFuncType {
+    Open
+    Closed
+    Driver
+    Bespoke
+}
+
+class VarArr<int T, int rowSize, int rows> {
+    - std::array<std::array<T, rowSize>, rows> arr
+    - int h
+    + VarArr()
+    + void incr()
+    + std::array<T, rowSize>& getRow(int n)
+    + T& operator[](int index)
+}
+
+abstract Solver<int nx, int nv, int ni, int m> {
+    + Solver(float k, float h, ...)
+    + ~Solver()
+    + void step()*
+    + const float getTime()
+    + const float* getVar(int, bool)
+    + float getPressure(float x)*
+    + float getVelocity(float x)*
+    # float lerpValue(float x, int varIndex, bool interleaved)
+    # void do_bf()
+    # void do_bfI()
+    + template<Derived> Derived& as()
+
+    -- Attributes --
+    # const float k
+    # const float h
+    # int ns
+    # VarArr<float, nx+2, 1> x
+    # VarArr<float, nx+1, 1> xI
+    # std::array<VarArr<float, nx+2, m+1>, nv> q
+    # std::array<VarArr<float, nx+1, m+1>, ni> qI
+    # BFunc* lbf
+    # BFunc* rbf
+    # std::unordered_map<BFuncType, BFunc*> funcMap
+
+    
+}
+
+class Solver::BFunc<int nx, int nv, int ni, int m> {
+    + ~BFunc()
+    + void bf(Solver& self, int inIx, int outIx)*
+    + void bfI(Solver& self, int inIx, int outIx)*
+}
+
+Solver --> VarArr
+Solver --> Solver::BFunc
+
+namespace webster_solver {
+class WebsterSolver<int nx> {
+    + WebsterSolver(...)
+    + float getPressure(float x)
+    + float getVelocity(float x)
+    + void step()
+
+    -- Attributes --
+    - VarArr<float, nx+2, 1> S
+    - VarArr<float, nx+1, 1> SI
+    - VarArr<float, nx+2, 2>& p
+    - VarArr<float, nx+1, 2>& v
+    - float rho
+    - float c_squared
+}
+
+WebsterSolver --|> Solver
+
+abstract BFuncImpl<typename T, int nx> {
+    + void bf(Solver& self, int, int)
+    + void bfI(Solver& self, int, int)
+}
+
+BFuncImpl --|> Solver::BFunc
+
+class BFuncImpl<Open, int nx> {
+    + void bf(...)
+    + void bfI(...)
+}
+class BFuncImpl<Closed, int nx> {
+    + void bf(...)
+    + void bfI(...)
+}
+class BFuncImpl<Driver, int nx> {
+    - float ampl
+    - float freq
+    + BFuncImpl(float, float)
+    + void bf(...)
+    + void bfI(...)
+}
+class BFuncImpl<Bespoke, int nx> {
+    + void bf(...)
+    + void bfI(...)
+}
+
+' "BFuncImpl<Open, nx>" -|> "Solver<nx, nv, ni, m>::BFunc"
+' "BFuncImpl<Closed, nx>" -|> "Solver<nx, nv, ni, m>::BFunc"
+' "BFuncImpl<Driver, nx>" -|> "Solver<nx, nv, ni, m>::BFunc"
+' "BFuncImpl<Bespoke, nx>" -|> "Solver<nx, nv, ni, m>::BFunc"
+}
+@enduml

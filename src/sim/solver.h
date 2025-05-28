@@ -32,7 +32,7 @@ class Solver {
             xi[nx] = 2*xi[nx-1] - xi[nx-2];
         }
 
-        void hydroIso(float dt) {
+        void step(float dt) {
             
             // compute cell interface velocities as mean of adjacent cell velocities
             for (int i = 1; i < nx; i++) {

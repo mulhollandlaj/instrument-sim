@@ -1,6 +1,7 @@
 import numpy as np
 import matplotlib.pyplot as plt
 import struct
+import math
 
 iterations = 1000
 width = 512
@@ -12,7 +13,7 @@ pdata = np.zeros((iterations,width), np.float32)
 with open("output/pdata.bin", "rb") as file:
     for i in range(iterations):
         for j in range(width):
-            pdata[i][j] = (np.float32) (struct.unpack("f", file.read(4)))
+            pdata[i][j] =  (np.float32) (struct.unpack("f", file.read(4)))
 
 
 # plot

@@ -2,14 +2,18 @@
 #include <stdio.h>
 #include <iostream>
 
-const int BSIZE = sizeof(xs::batch<float>) / sizeof(float);
 
 namespace xs = xsimd;
+const int BSIZE = sizeof(xs::batch<float>) / sizeof(float);
+
+
 xs::batch<float> mean(xs::batch<float> lhs, xs::batch<float> rhs) {
     return (lhs + rhs) / 2;
 }
 
 int main() {
+    std::cout << BSIZE << std::endl;
+
     // defining constants for problem
     const int nx = 512;
     const int nt = 1e4;
@@ -25,8 +29,4 @@ int main() {
     const int nb = nx / BSIZE;
 
     xs::batch<float> xl[nb], x[nb], xr[nb], rhol[nb], rho[nb], rhor[nb], rhoul[nb], rhou[nb], rhour[nb];
-
-     
-
-
 }

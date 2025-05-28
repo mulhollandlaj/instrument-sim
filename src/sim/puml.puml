@@ -1,0 +1,157 @@
+@startuml sim
+class Solver1<int nx> {
+- float x[nx]
+- float xi[nx+1]
+- float rho[nx]
+- float rhou[nx]
+- float e[nx]
+- float gamma
+- float time
+
+- float ui
+- float fluxrho[nx+1]
+- float fluxrhou[nx+1]
+- float p[nx]
+
+
++ Solver1(float *x, float *rho, \n    float *rhou, float *e, \n    float gamma)
++ void step(float dt)
++ void getPressure(float *pArr)
++ float getTime()
+}
+
+class Solver2<int nx> {
+- float x[nx + 2]
+- float dt_dx[nx]
+- float A[nx + 2]
+- float Anorm[nx]
+
+- float q1[2*(nx+2)] {field}
+- float q2[2*(nx+2)] {field}
+- float q3[2*(nx+2)] {field}
+
+- float q1i[nx+1]
+- float q2i[nx+1]
+- float q3i[nx+1]
+
+- float dt, t, c1, c2, c3, c4
+- float *q1o, *q2o, *q3o
+- float *q1n, *q2n, *q3n
+
+- void swapArrs()
+
++ Solver2(float *x, float *A, \n    float *rho, float *rhou, \n    float *rhoe, float dt, \n    float gamma)
++ void setBoundaries(float q1l, \n    float q1r, float q2l, float q2r, \n    float q3l, float q3r)
++ void step()
++ void step2()
++ void getPressure(float *pArr)
++ float getTime()
+
+}
+
+class Solver3<int nx> {
+- float x[nx + 2];
+- float dt_dx[nx];
+- float S[nx + 2];
+- float Snorm[nx];
+- float e[nx+2];
+- float ei[nx+1];
+
+- float q1[2*(nx+2)]; {field}
+- float q2[2*(nx+2)]; {field}
+- float q1f[nx+1];
+- float q2f[nx+1];
+- float ui[nx+1];
+
+- float dt, t, c1, c2;
+- float *q1o, *q2o
+- float *q1n, *q2n;
+
+- float ampl
+- float freq
+
+- void swapArrs()
+
++ Solver3(float *x, float *S, \n    float *rho, float *rhou, \n    float *e, float dt, \n    float gamma)
++ void setBoundaries(float q1l, \n    float q1r, float q2l, float q2r)
++ void step()
++ void getPressure(float *pArr)
++ void getVelocity(float *vArr)
++ float getTime()
+}
+
+class Solver4<int nx, int m> {
+- float h, k, c_squared, rho
+
+- float p[(nx+2) * 2] {field}
+- float v[nx+1]
+- float S[nx+2]
+- float Si[nx+1]
+
+- float * p_curr
+- float * p_next
+
+- long step_count
+
+- float driver_freq
+- float driver_ampl
+
+- BoundaryType lb, rb
+- void (Solver4<nx, m>::*lbf)(float * pi, float * po, float * v) {field}
+- void (Solver4<nx, m>::*rbf)(float * pi, float * po, float * v) {field}
+
+- void step_cq()
+- float *get_prev_p_ptr(int n)
+- void b_closed(float * pi, float * po, float * v)
+- void b_open(float * pi, float * po, float * v)
+- void enforce_bfs()
+- void b_driver(float * pi, float * po, float * v)
+
++ Solver4(float h, float k, float c, float rho, \n    float * p, float * v, float * S, BoundaryType lb, \n    BoundaryType rb)
++ void step()
++ void getPressure(float *pArr)
++ void getVelocity(float *vArr)
++ float getPressure(int i)
++ float getVelocity(int i)
++ float getTime()
+}
+
+class Solver5<int nx> {
+- float h
+- float k
+- float qvv[m][nx+1]
+- float qpv[m+1][nx+1]
+- float qpp[m][nx+2]
+- float qvp0[m+1][nx+2]
+- float qvp1[m+1][nx+2]
+- float qup[m+1]
+- float p[(nx+2)*(m+2)] {field}
+- float v[(nx+1)*(m+2)] {field}
+- long step_count
+- BoundaryType lb
+- BoundaryType rb
+- float driver_freq
+- float driver_ampl
+- void (Solver5<nx, m>::*lbfp)(float *pi, float *po)
+- void (Solver5<nx, m>::*rbfp)(float *pi, float *po)
+- void (Solver5<nx, m>::*lbfv)(float *vi, float *vo)
+- void (Solver5<nx, m>::*rbfv)(float *vi, float *vo)
+}
+
+enum BoundaryType {
+0: Zero
+1: Closed
+2: Open
+3: In
+4: Out
+5: Driver
+}
+
+Solver4 *- BoundaryType
+Solver5 *- BoundaryType
+
+remove Solver1
+remove Solver2
+remove Solver3
+remove Solver5
+@enduml

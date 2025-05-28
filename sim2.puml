@@ -1,0 +1,239 @@
+@startuml sim2
+abstract solver.Solver<typename D, int nx, int nv, int ni, int m> $Solver {
+# float h
+# float k
+# long ns
+# std::array<float, nx + 2> x
+# std::array<float, nx + 1> xI
+# std::array<VarArr<float, nx + 2, m + 1>, nv> q
+# std::array<VarArr<float, nx + 1, m + 1>, ni> qI
+# std::shared_ptr<BFunc<D>> lbf, rbf
+
+# do_bf()
+# do_bfI()
+# float lerpValue(float x, int varIndex, bool interleaved) const
++ ~Solver()
++ Solver(\n    float h_, \n    float k_, \n    std::array<std::array<float, nx>, nv> qArrs, \n    std::array<std::array<float, nx + 1>, nv> qArrsI, \n    std::shared_ptr<BFunc<D>> lbf_, \n    std::shared_ptr<BFunc<D>> rbf_)
++ float getTime() const
++ VarArr<float, nx+2, m + 1> &getVar(int varIndex)
++ VarArr<float, nx+1, m + 1> &getVarI(int varIndex)
++ BFunc<D> &getBFunc(bool right) const
++ void step()
+
+# virtual void step_()
++ virtual void getPressure(std::array<float, nx> &destArr) const
++ virtual void getVelocity(std::array<float, nx> &destArr) const
++ virtual float getPressure(float x) const
++ virtual float getVelocity(float x) const
+}
+
+class solver.SolverImpl $Solver $Placeholder {
+- void step_()
++ void getPressure(std::array<float, nx> &destArr) const
++ void getVelocity(std::array<float, nx> &destArr) const
++ float getPressure(float x) const
++ float getVelocity(float x) const
+}
+
+class solver.BFuncImpl $BFunc $Placeholder {
++ void bf(SolverImpl &solver, int inIx, int outIx)
++ void bfI(SolverImpl &solver, int inIx, int outIx)
+}
+
+interface solver.BFuncOpen<typename Derived> $BFunc
+interface solver.BFuncClosed<typename Derived> $BFunc
+interface solver.BFuncDriver<typename Derived> $BFunc
+
+class "solver.BFuncOpen<SolverImpl>" $BFunc $Placeholder
+class "solver.BFuncClosed<SolverImpl>" $BFunc $Placeholder
+class "solver.BFuncDriver<SolverImpl>" $BFunc $Placeholder
+
+abstract solver.WebsterIntermediate<typename D, int nx, int m> $Solver $WebsterI {
+# solver::VarArr<float, nx + 2, 1> S;
+# solver::VarArr<float, nx + 1, 1> SI;
+# solver::VarArr<float, nx + 2, m + 1> &p;
+# solver::VarArr<float, nx + 1, m + 1> &v;
+
++ template <typename T1, typename T2> \n\
+WebsterIntermediate(float k_, float h_, \n    std::array<float, nx> &pArr, \n    std::array<float, nx + 1> &vArr, \n    std::array<float, nx> &SArr, \n    T &&lbf_, T &&rbf_)
+
++ void getPressure(std::array<float, nx> &destArr) const
++ void getVelocity(std::array<float, nx> &destArr) const
++ float getPressure(float x) const
++ float getPressure(float x) const
+}
+
+class solver.EulerSolver<int nx> $Solver $Euler {
+# std::array<float, nx + 2> S
+# std::array<float, nx> SNorm
+# solver::VarArr<float, nx + 2, 2> &rho
+# solver::VarArr<float, nx + 2, 2> &rho_u
+# std::array<float, nx + 2> e
+# std::array<float, nx + 1> rhoFlux
+# std::array<float, nx + 1> rho_uFlux
+# const float dt_dx
+# const float c1
+# const float e0
+# const float p0
+# step_() override
+
++ template <typename T1, typename T2> EulerSolver( \n\
+    float k_, float h_, float gamma, float e0_, float p0_, \n\
+    std::array<float, nx> &rho_,\n\
+    std::array<float, nx> &rho_u_, \n\
+    std::array<float, nx> &S_,\n\
+    std::array<float, nx> &e_,  \n\
+    T1 &&lbf_, T2 &&rbf_)
++ void getPressure(std::array<float, nx> &destArr) const override
++ void getVelocity(std::array<float, nx> &destArr) const override
++ float getPressure(float x) const override
++ float getVelocity(float x) const override
+}
+
+class solver.WebsterSolver<int nx> $Solver $Webster {
+- float rho
+- float c_squared
+- void step_()
+
++ template <typename T1, typename T2> \nWebsterSolver(\n    float k_, float h_, \n    std::array<float, nx> &pArr, \n    std::array<float, nx + 1> &vArr, \n    std::array<float, nx> &SArr, \n    T1 &&lbf_, T2 &&rbf_)
+}
+
+class solver.ViscoSolver<int nx, int order> $Solver $Visco {
+- std::array<std::array<float, nx + 1>, order> qvv
+- std::array<std::array<float, nx + 1>, order + 1> qpv
+- std::array<std::array<float, nx + 2>, order> qpp
+- std::array<std::array<float, nx + 2>, order + 1> qvp0
+- std::array<std::array<float, nx + 2>, order + 1> qvp1
+- std::array<float, order + 1> qup
+- void step_() override
+
++ template <typename T1, typename T2> \n\
+ViscoSolver(float k, float h, float rho, float c, \n\
+    float eta, float nu, float gamma, \n\
+    std::array<float, nx> &pArr, \n\
+    std::array<float, nx + 1> &vArr, \n\
+    std::array<float, nx> &SArr, \n\
+    T1 &&lbf, T2 &&rbf)
+}
+
+
+class solver.Phasor $BFunc {
+- float freq
+- float ampl
+- float phase
+
++ Phasor(float freq_, float ampl_, float phase_)
+
++ float getFreq() const
++ float getAmpl() const
++ float getPhase() const
+
++ void setFreq(float freq_)
++ void setAmpl(float ampl_)
++ void setPhase(float phase_)
+
++ float getValue(float t) const
+}
+
+interface solver.BFunc<typename Derived> $BFunc {
++ virtual void bf(T &solver, int inIx, int outIx)
++ virtual void bfI(T &solver, int inIx, int outIx)
+}
+abstract solver.BFuncWI<typename T> $BFunc $WebsterI {
++ BFuncWI()
+}
+
+class solver.BFuncWIOpen<typename T> $BFunc $WebsterI {
++ void bf(T &solver, int inIx, int outIx)
++ void bfI(T &solver, int inIx, int outIx)
+}
+
+class solver.BFuncWIClosed<typename T> $BFunc $WebsterI {
++ void bf(T &solver, int inIx, int outIx)
++ void bfI(T &solver, int inIx, int outIx)
+}
+
+class solver.BFuncWIDriver<typename T> $BFunc $WebsterI {
++ void bf(T &solver, int inIx, int outIx)
++ void bfI(T &solver, int inIx, int outIx)
+}
+
+class "solver.BFuncOpen<WebsterSolver<nx>>"<int nx> $BFunc $Webster
+class "solver.BFuncClosed<WebsterSolver<nx>>"<int nx> $BFunc $Webster
+class "solver.BFuncDriver<WebsterSolver<nx>>"<int nx> $BFunc $Webster
+
+class "solver.BFuncOpen<ViscoSolver<nx, m>>"<int nx, int m> $BFunc $Visco
+class "solver.BFuncClosed<ViscoSolver<nx, m>>"<int nx, int m> $BFunc $Visco
+class "solver.BFuncDriver<ViscoSolver<nx, m>>"<int nx, int m> $BFunc $Visco
+
+class "solver.BFuncOpen<EulerSolver<nx>>"<int nx> $BFunc $Euler {
++ void bf(EulerSolver<nx> &solver, int inIx, int outIx)
++ void bfI(EulerSolver<nx> &solver, int inIx, int outIx)
+}
+class "solver.BFuncClosed<EulerSolver<nx>>"<int nx> $BFunc $Euler {
++ void bf(EulerSolver<nx> &solver, int inIx, int outIx)
++ void bfI(EulerSolver<nx> &solver, int inIx, int outIx)
+}
+class "solver.BFuncDriver<EulerSolver<nx>>"<int nx> $BFunc $Euler {
++ void bf(EulerSolver<nx> &solver, int inIx, int outIx)
++ void bfI(EulerSolver<nx> &solver, int inIx, int outIx)
+}
+
+solver.Solver o- solver.BFunc
+solver.Solver <|-- solver.SolverImpl : <<Bind>>\n<D->SolverImpl, nx->Nx, nv->Nv, ni_>Ni, m->M>
+solver.BFunc <|-- solver.BFuncImpl : <<Bind>>\n<Derived->SolverImpl>
+solver.SolverImpl - solver.BFuncImpl : serves <
+
+solver.Solver <|-- solver.WebsterIntermediate : <<Bind>>\n<nv->1, ni->1>
+solver.WebsterIntermediate <|-- solver.WebsterSolver : <<Bind>>\n<D->WebsterSolver<nx>, m->1>
+solver.WebsterIntermediate <|-- solver.ViscoSolver : <<Bind>>\n<D->ViscoSolver<nx, m>>
+solver.Solver<|-- solver.EulerSolver : <<Bind>>\n<D->EulerSolver<nx>, nv->2, ni->0, m->1>
+
+solver.BFunc <|-- solver.BFuncWI : <<Bind>>\n<Derived->T>
+solver.BFuncWI <|-- solver.BFuncWIOpen
+solver.BFuncWI <|-- solver.BFuncWIClosed
+solver.BFuncWI <|-- solver.BFuncWIDriver
+solver.Phasor <|-- solver.BFuncWIDriver
+solver.Phasor <|-- "solver.BFuncDriver<EulerSolver<nx>>"
+
+solver.BFunc <|-- solver.BFuncOpen
+solver.BFunc <|-- solver.BFuncClosed
+solver.BFunc <|-- solver.BFuncDriver
+
+solver.BFuncOpen <|.. "solver.BFuncOpen<SolverImpl>"
+solver.BFuncClosed <|.. "solver.BFuncClosed<SolverImpl>"
+solver.BFuncDriver <|.. "solver.BFuncDriver<SolverImpl>"
+
+solver.BFuncOpen <|.. "solver.BFuncOpen<WebsterSolver<nx>>" : <<Bind>>\n<Derived->WebsterSolver<nx>>
+solver.BFuncWIOpen <|-- "solver.BFuncOpen<WebsterSolver<nx>>" : <<Bind>>\n<T->WebsterSolver<nx>>
+
+solver.BFuncClosed <|.. "solver.BFuncClosed<WebsterSolver<nx>>" : <<Bind>>\n<Derived->WebsterSolver<nx>>
+solver.BFuncWIClosed <|-- "solver.BFuncClosed<WebsterSolver<nx>>" : <<Bind>>\n<T->WebsterSolver<nx>>
+
+solver.BFuncDriver <|.. "solver.BFuncDriver<WebsterSolver<nx>>" : <<Bind>>\n<Derived->WebsterSolver<nx>>
+solver.BFuncWIDriver <|-- "solver.BFuncDriver<WebsterSolver<nx>>" : <<Bind>>\n<T->WebsterSolver<nx>>
+
+solver.BFuncOpen <|.. "solver.BFuncOpen<ViscoSolver<nx, m>>" : <<Bind>>\n<Derived->ViscoSolver<nx, m>>
+solver.BFuncWIOpen <|-- "solver.BFuncOpen<ViscoSolver<nx, m>>" : <<Bind>>\n<T->ViscoSolver<nx, m>>
+
+solver.BFuncClosed <|.. "solver.BFuncClosed<ViscoSolver<nx, m>>" : <<Bind>>\n<Derived->ViscoSolver<nx, m>>
+solver.BFuncWIClosed <|-- "solver.BFuncClosed<ViscoSolver<nx, m>>" : <<Bind>>\n<T->ViscoSolver<nx, m>>
+
+solver.BFuncDriver <|.. "solver.BFuncDriver<ViscoSolver<nx, m>>" : <<Bind>>\n<Derived->ViscoSolver<nx, m>>
+solver.BFuncWIDriver <|-- "solver.BFuncDriver<ViscoSolver<nx, m>>" : <<Bind>>\n<T->ViscoSolver<nx, m>>
+
+solver.BFuncOpen <|.. "solver.BFuncOpen<EulerSolver<nx>>" : <<Bind>>\n<Derived->EulerSolver<nx>>
+solver.BFuncClosed <|.. "solver.BFuncClosed<EulerSolver<nx>>" : <<Bind>>\n<Derived->EulerSolver<nx>>
+solver.BFuncDriver <|.. "solver.BFuncDriver<EulerSolver<nx>>" : <<Bind>>\n<Derived->EulerSolver<nx>>
+
+remove $WebsterI
+remove $Webster
+remove $Visco
+remove $Euler
+remove solver.BFuncImpl
+hide solver.Solver members
+hide solver.BFunc members
+hide solver.Phasor members
+hide solver.SolverImpl members
+
+@enduml
